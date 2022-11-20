@@ -1,3 +1,4 @@
+from copy import deepcopy
 import os
 from collections import defaultdict
 import sys
@@ -412,7 +413,9 @@ class StepFunctions(object):
         env_deco = [deco for deco in node.decorators if deco.name == "environment"]
         env = {}
         if env_deco:
-            env = env_deco[0].attributes["vars"]
+            # Deepcopy required otherwise changes to env also appear in the
+            # 'vars' values associated with the original environment decorator.
+            env = deepcopy(env_deco[0].attributes["vars"])
 
         # add METAFLOW_S3_ENDPOINT_URL
         if S3_ENDPOINT_URL is not None:
