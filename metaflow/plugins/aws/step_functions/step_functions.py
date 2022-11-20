@@ -403,6 +403,12 @@ class StepFunctions(object):
             "step_name": node.name,
         }
 
+        # theodorew: Get information about the node, and what decorators are
+        # around it.
+        print(f"DEBUG: In StepFunctions._batch for node '{node.name}'")
+        print(f"\tDynamic decorators: {[decorator.name for decorator in node.decorators if not decorator.statically_defined]}")
+        print(f"\tStatic decorators: {[decorator.name for decorator in node.decorators if decorator.statically_defined]}")
+
         # Store production token within the `start` step, so that subsequent
         # `step-functions create` calls can perform a rudimentary authorization
         # check.
@@ -411,8 +417,12 @@ class StepFunctions(object):
 
         # Add env vars from the optional @environment decorator.
         env_deco = [deco for deco in node.decorators if deco.name == "environment"]
+        # theodorew: At this point, regardless of whether it's static or
+        # dynamic, the environment decorator only contains values that we
+        # explicitly supplied.
         env = {}
         if env_deco:
+            print(f"\tEnvironment decorator vars (in theory, immutable): '{env_deco[0].make_decorator_spec()}'")
             # Deepcopy required otherwise changes to env also appear in the
             # 'vars' values associated with the original environment decorator.
             env = deepcopy(env_deco[0].attributes["vars"])
@@ -660,6 +670,9 @@ class StepFunctions(object):
             "retry_count": "$((AWS_BATCH_JOB_ATTEMPT-1))",
         }
 
+        if env_deco:
+            print(f"\tEnvironment decorator vars (in theory, immutable) after creating everything: '{env_deco[0].make_decorator_spec()}'")
+
         return (
             Batch(self.metadata, self.environment)
             .create_job(
@@ -714,6 +727,8 @@ class StepFunctions(object):
 
         # Use AWS Batch job identifier as the globally unique task identifier.
         task_id = "${AWS_BATCH_JOB_ID}"
+        # theodorew: This is where we expand our nomegrown environment
+        # decorator with all of the environment variables.
         top_opts_dict = {
             "with": [
                 decorator.make_decorator_spec()
